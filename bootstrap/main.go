@@ -28,31 +28,31 @@ func main() {
 		os.Exit(0)
 	}
 
-	dataReplSetName, dataMembers, err := ParseReplicaSet(config.DataSet)
+	shardReplicasets, err := ParseShardReplicaSet(config.DataSet)
 	if err != nil {
 		logrus.Fatal(err)
 	}
 
-	logrus.Infof("Bootstrap started for data cluster %v members %v", dataReplSetName, dataMembers)
+	for _, srs := range shardReplicasets {
+		dataReplSet := &ReplicaSet{
+			Name:    srs.replSetName,
+			Members: srs.members,
+		}
 
-	dataReplSet := &ReplicaSet{
-		Name:    dataReplSetName,
-		Members: dataMembers,
-	}
+		err = dataReplSet.InitWithRetry(config.Retry, config.Wait)
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		logrus.Infof("%v replica set initialized successfully", srs.replSetName)
 
-	err = dataReplSet.InitWithRetry(config.Retry, config.Wait)
-	if err != nil {
-		logrus.Fatal(err)
-	}
-	logrus.Infof("%v replica set initialized successfully", dataReplSetName)
-
-	hasPrimary, err := dataReplSet.WaitForPrimary(config.Retry, config.Wait)
-	if err != nil {
-		logrus.Fatal(err)
-	}
-	dataReplSet.PrintStatus()
-	if !hasPrimary {
-		logrus.Fatalf("No primary node found for replica set %v", dataReplSetName)
+		hasPrimary, err := dataReplSet.WaitForPrimary(config.Retry, config.Wait)
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		dataReplSet.PrintStatus()
+		if !hasPrimary {
+			logrus.Fatalf("No primary node found for replica set %v", srs.replSetName)
+		}
 	}
 
 	cfgReplSetName, cfgMembers, err := ParseReplicaSet(config.ConfigSet)
@@ -73,7 +73,7 @@ func main() {
 	}
 	logrus.Infof("%v replica set initialized successfully", cfgReplSetName)
 
-	hasPrimary, err = cfgReplSet.WaitForPrimary(config.Retry, config.Wait)
+	hasPrimary, err := cfgReplSet.WaitForPrimary(config.Retry, config.Wait)
 	if err != nil {
 		logrus.Fatal(err)
 	}
@@ -97,17 +97,19 @@ func main() {
 			logrus.Infof("%v is online", mongos)
 		}
 
-		m := &Mongos{
-			Address:       mongos,
-			ReplicaSetUrl: config.DataSet,
+		shardList, _ := ParseShards(config.DataSet)
+		for _, shardRs := range shardList {
+			m := &Mongos{
+				Address:       mongos,
+				ReplicaSetUrl: shardRs,
+			}
+			err = m.Init()
+			if err != nil {
+				logrus.Fatal(err)
+			}
+			logrus.Infof("%v shard added", mongos)
 		}
 
-		err = m.Init()
-		if err != nil {
-			logrus.Fatal(err)
-		}
-
-		logrus.Infof("%v shard added", mongos)
 	}
 
 	logrus.Info("Bootstrap finished")
