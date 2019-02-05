@@ -1,5 +1,12 @@
 # mongo-swarm
 
+### About this fork
+This fork allows to create a mongo cluster with *multiple shards* with *any number of replicas* on *a single node*. It's useful for quickly testing sharded mongo.
+
+![diagram](diagrams/multi-shard-mongo.png)
+
+----
+
 [![Build Status](https://travis-ci.org/stefanprodan/mongo-swarm.svg?branch=master)](https://travis-ci.org/stefanprodan/mongo-swarm)
 [![Docker Image](https://images.microbadger.com/badges/image/stefanprodan/mongo-bootstrap.svg)](https://hub.docker.com/r/stefanprodan/mongo-bootstrap)
 
