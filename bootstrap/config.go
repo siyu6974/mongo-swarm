@@ -27,9 +27,9 @@ func ParseReplicaSet(definition string) (string, []string, error) {
 
 	members := strings.Split(parts[1], ",")
 
-	if len(members) < 3 {
-		return "", nil, errors.New("Invalid ReplicaSet definition, a minimum of 3 members required")
-	}
+	// if len(members) < 3 {
+	// 	return "", nil, errors.New("Invalid ReplicaSet definition, a minimum of 3 members required")
+	// }
 
 	return replSetName, members, nil
 }
